@@ -1,0 +1,30 @@
+FROM python:3.9-slim-buster
+
+# Define a build argument for architecture
+ARG ARCH="amd64"
+
+VOLUME /app/dataset
+
+WORKDIR /app
+
+ADD clientsML_forecast/ARIMA/clientML.py /app
+ADD clientsML_forecast/ARIMA/requirements_clientML.txt /app
+ADD interface/interface.py /app
+ADD interface/requirements_interface.txt /app
+COPY ./common /app/common
+
+RUN pip3 install --upgrade pip
+
+ENV ARCH=${ARCH}
+# Copy the wrapper script into the image
+COPY clientsML_forecast/ARIMA/scikit-learn_entrypoint.sh /app
+RUN chmod +x /app/scikit-learn_entrypoint.sh
+
+# Set the wrapper script as the entrypoint
+ENTRYPOINT ["/app/scikit-learn_entrypoint.sh"]
+
+RUN pip3 install --no-cache-dir -r requirements_clientML.txt
+RUN pip3 install --no-cache-dir -r requirements_interface.txt
+
+EXPOSE 5000
+CMD ["uvicorn", "interface:mflinterface_app", "--host", "0.0.0.0", "--port", "5000"]
